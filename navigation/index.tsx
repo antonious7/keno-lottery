@@ -13,7 +13,7 @@ import { ColorSchemeName } from 'react-native';
 import Colors from '../constants/Colors';
 import useColorScheme from '../hooks/useColorScheme';
 import NotFoundScreen from '../screens/NotFoundScreen';
-import HomeScreen from '../screens/HomeScreen';
+import { HomeScreen } from '../screens/HomeScreen';
 import { RootStackParamList, RootTabParamList, RootTabScreenProps } from '../types';
 
 export default function Navigation({colorScheme}: { colorScheme: ColorSchemeName }) {

@@ -6,18 +6,23 @@ import useCachedResources from './hooks/useCachedResources';
 import useColorScheme from './hooks/useColorScheme';
 import Navigation from './navigation';
 
-export default function App() {
-  const isLoadingComplete = useCachedResources();
-  const colorScheme = useColorScheme();
+import { Provider } from 'react-redux';
+import { store } from './redux';
 
-  if (!isLoadingComplete) {
-    return null;
-  } else {
-    return (
-      <SafeAreaProvider>
-        <Navigation colorScheme={colorScheme} />
-        <StatusBar />
-      </SafeAreaProvider>
-    );
-  }
+export default function App() {
+	const isLoadingComplete = useCachedResources();
+	const colorScheme = useColorScheme();
+
+	if (!isLoadingComplete) {
+		return null;
+	} else {
+		return (
+			<Provider store={store}>
+				<SafeAreaProvider>
+					<Navigation colorScheme={colorScheme}/>
+					<StatusBar/>
+				</SafeAreaProvider>
+			</Provider>
+		);
+	}
 }

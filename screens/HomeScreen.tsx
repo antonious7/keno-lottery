@@ -3,10 +3,21 @@ import { ScrollView, StyleSheet, TextInput, TouchableOpacity, View, } from 'reac
 import Modal from 'react-native-modalbox';
 import Colors from '../constants/Colors';
 import { Text } from '../components/Themed';
-import { NUMBER_PICK_LIMIT, TOTAL_NUMBER_SQUARES } from '../constants/Lottery';
+import { BET_PLACEMENT_SUCCESS, ERROR_MESSAGES_INVALID_BET_AMOUNT, ERROR_MESSAGES_INVALID_NUMBERS, NUMBER_PICK_LIMIT, TOTAL_NUMBER_SQUARES } from '../constants/Lottery';
 import useColorScheme from '../hooks/useColorScheme';
+import { debounce } from 'lodash';
 
-export default function HomeScreen() {
+import { connect } from 'react-redux';
+import { ApplicationState, onPlacingBetAction, onUpdateBet, onUpdateNumbers } from '../redux';
+
+export interface HomeScreenProps {
+	onPlacingBetAction: Function,
+	onUpdateBet: Function,
+	onUpdateNumbers: Function
+}
+
+const _HomeScreen: React.FC<HomeScreenProps> = (props) => {
+	const { onPlacingBetAction, onUpdateBet, onUpdateNumbers } = props;
 	const colorScheme = useColorScheme();
 	const numbers = Array.from(Array(TOTAL_NUMBER_SQUARES), (_, index) => index + 1);
 	const usualBets = [ 1, 2, 5, 10, 20, 50 ];
@@ -28,7 +39,9 @@ export default function HomeScreen() {
 			}
 			return [ ...prevState ];
 		});
+		onUpdateNumbers(selectedNumbers);
 	};
+
 	const clearState = () => {
 		setSelectedNumbers([]);
 		setStake('');
@@ -44,6 +57,7 @@ export default function HomeScreen() {
 	};
 
 	const handlePlaceBetEvent = () => {
+		onPlacingBetAction({numbers: selectedNumbers, betAmount: stake});
 		const isNumeric = !isNaN(Number(stake))
 		if (!isNumeric || Number(stake) < 1) {
 			setIsValidAmount(false)
@@ -65,12 +79,31 @@ export default function HomeScreen() {
 			setIsValidAmount(true)
 		}
 		setStake(item.toString())
+		onUpdateBet(item.toString());
 	};
+
+	const onManualSelectStake = (item: string) => {
+			setStake(item);
+			debouncedManualBetUpdate(item);
+	};
+
+	const debouncedManualBetUpdate = React.useRef(
+		debounce(async (item: string) => {
+			onUpdateBet(item);
+		}, 300)
+	).current;
 
 	const onQuickPickPress = () => {
 		const luckyNumbers = generateRandomNumber(NUMBER_PICK_LIMIT);
 		setSelectedNumbers(luckyNumbers);
+		onUpdateNumbers(luckyNumbers);
 	};
+
+	React.useEffect(() => {
+		return () => {
+			debouncedManualBetUpdate.cancel();
+		};
+	}, [debouncedManualBetUpdate]);
 
 
 	return (
@@ -184,7 +217,7 @@ export default function HomeScreen() {
 						style={styles.manualBetContainer}>
 						<TextInput
 							value={stake}
-							onChangeText={setStake}
+							onChangeText={onManualSelectStake}
 							keyboardType="numeric"
 							style={[ styles.textInput, {color: Colors[ colorScheme ].color, borderColor: Colors[ colorScheme ].color, borderWidth: 1, borderStyle: 'solid'} ]}
 							placeholder="Enter Stake"
@@ -213,17 +246,17 @@ export default function HomeScreen() {
 				position="center"
 			>
 				{
-					isValidAmount && isValidPick && <Text style={{color: 'green', fontSize: 22}}>Success</Text>}
+					isValidAmount && isValidPick && <Text style={{color: 'green', fontSize: 22}}>{BET_PLACEMENT_SUCCESS}</Text>}
 				{
 					!isValidPick && <Text
 						style={{color: 'red'}}>
-						Please select {NUMBER_PICK_LIMIT} numbers
+						{ERROR_MESSAGES_INVALID_NUMBERS}
 					</Text>
 				}
 				{
 					!isValidAmount && <Text
 						style={{color: 'red'}}>
-						Please set a valid bet
+						{ERROR_MESSAGES_INVALID_BET_AMOUNT}
 					</Text>
 				}
 			</Modal>
@@ -363,3 +396,11 @@ const styles = StyleSheet.create({
 		borderRadius: 15
 	},
 });
+
+const mapToStateProps = (state: ApplicationState) => ({
+	betReducer: state.betReducer
+})
+
+const HomeScreen = connect(mapToStateProps, {onPlacingBetAction, onUpdateBet, onUpdateNumbers})(_HomeScreen);
+
+export { HomeScreen };
