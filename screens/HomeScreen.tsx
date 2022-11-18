@@ -56,8 +56,8 @@ export default function HomeScreen() {
 			setIsValidAmount(true)
 			setIsValidPick(true)
 			modal.current?.open()
+			clearState();
 		}
-		clearState();
 	};
 
 	const onSelectStake = (item: number) => {
@@ -67,10 +67,10 @@ export default function HomeScreen() {
 		setStake(item.toString())
 	};
 
-	const onQuickPickPress = React.useCallback(() => {
+	const onQuickPickPress = () => {
 		const luckyNumbers = generateRandomNumber(NUMBER_PICK_LIMIT);
 		setSelectedNumbers(luckyNumbers);
-	}, []);
+	};
 
 
 	return (
