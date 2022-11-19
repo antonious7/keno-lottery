@@ -17,14 +17,12 @@ export interface HomeScreenProps {
 }
 
 const _HomeScreen: React.FC<HomeScreenProps> = (props) => {
-	const {onPlacingBetAction, onUpdateBet, onUpdateNumbers, betReducer} = props;
 	const colorScheme = useColorScheme();
+	const {onPlacingBetAction, onUpdateBet, onUpdateNumbers, betReducer} = props;
 	const lotteryNumbers = Array.from(Array(TOTAL_NUMBER_SQUARES), (_, index) => index + 1);
 	const usualBets = [ 1, 2, 5, 10, 20, 50 ];
 	const selectedPlaceholderNums: any[] = [ '?', '?', '?', '?', '?' ];
-	const numbers = betReducer.numbers;
-	const betAmount = betReducer.betAmount;
-	const error = betReducer.error;
+	const { numbers, betAmount, error } = betReducer;
 	const modal = React.useRef<Modal>(null);
 
 
@@ -219,8 +217,8 @@ const _HomeScreen: React.FC<HomeScreenProps> = (props) => {
 				swipeToClose={true}
 				position="center"
 			>
-				{error === '' && <Text style={{color: 'green', fontSize: 22}}>{BET_PLACEMENT_SUCCESS}</Text>}
-				{error !== '' && <Text style={{color: 'red', fontSize: 14}}>{error}</Text>}
+				{!error && <Text style={{color: 'green', fontSize: 22}}>{BET_PLACEMENT_SUCCESS}</Text>}
+				{!!error && <Text style={{color: 'red', fontSize: 14}}>{error}</Text>}
 			</Modal>
 		</ScrollView>
 	);
