@@ -219,8 +219,8 @@ const _HomeScreen: React.FC<HomeScreenProps> = (props) => {
 				swipeToClose={true}
 				position="center"
 			>
-				{!error && <Text style={{color: 'green', fontSize: 22}}>{BET_PLACEMENT_SUCCESS}</Text>}
-				{error && <Text style={{color: 'red', fontSize: 22}}>{error}</Text>}
+				{error === '' && <Text style={{color: 'green', fontSize: 22}}>{BET_PLACEMENT_SUCCESS}</Text>}
+				{error !== '' && <Text style={{color: 'red', fontSize: 14}}>{error}</Text>}
 			</Modal>
 		</ScrollView>
 	);
