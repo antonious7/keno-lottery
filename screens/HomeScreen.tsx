@@ -3,48 +3,41 @@ import { ScrollView, StyleSheet, TextInput, TouchableOpacity, View, } from 'reac
 import Modal from 'react-native-modalbox';
 import Colors from '../constants/Colors';
 import { Text } from '../components/Themed';
-import { BET_PLACEMENT_SUCCESS, ERROR_MESSAGES_INVALID_BET_AMOUNT, ERROR_MESSAGES_INVALID_NUMBERS, NUMBER_PICK_LIMIT, TOTAL_NUMBER_SQUARES } from '../constants/Lottery';
+import { BET_PLACEMENT_SUCCESS, NUMBER_PICK_LIMIT, TOTAL_NUMBER_SQUARES } from '../constants/Lottery';
 import useColorScheme from '../hooks/useColorScheme';
 import { debounce } from 'lodash';
-
 import { connect } from 'react-redux';
-import { ApplicationState, onPlacingBetAction, onUpdateBet, onUpdateNumbers } from '../redux';
+import { ApplicationState, BetState, onPlacingBetAction, onUpdateBet, onUpdateNumbers } from '../redux';
 
 export interface HomeScreenProps {
 	onPlacingBetAction: Function,
 	onUpdateBet: Function,
-	onUpdateNumbers: Function
+	onUpdateNumbers: Function,
+	betReducer: BetState,
 }
 
 const _HomeScreen: React.FC<HomeScreenProps> = (props) => {
-	const { onPlacingBetAction, onUpdateBet, onUpdateNumbers } = props;
+	const {onPlacingBetAction, onUpdateBet, onUpdateNumbers, betReducer} = props;
 	const colorScheme = useColorScheme();
-	const numbers = Array.from(Array(TOTAL_NUMBER_SQUARES), (_, index) => index + 1);
+	const lotteryNumbers = Array.from(Array(TOTAL_NUMBER_SQUARES), (_, index) => index + 1);
 	const usualBets = [ 1, 2, 5, 10, 20, 50 ];
 	const selectedPlaceholderNums: any[] = [ '?', '?', '?', '?', '?' ];
-	const [ selectedNumbers, setSelectedNumbers ] = React.useState<number[]>([]);
+	const numbers = betReducer.numbers;
+	const betAmount = betReducer.betAmount;
+	const error = betReducer.error;
 	const modal = React.useRef<Modal>(null);
-	const [ stake, setStake ] = React.useState('');
-	const [ isValidAmount, setIsValidAmount ] = React.useState(true)
-	const [ isValidPick, setIsValidPick ] = React.useState(true)
 
 
 	const handleSelectedNumber = (number: number) => {
-		setSelectedNumbers((prevState) => {
-			if (prevState.includes(number)) {
-				const index = prevState.indexOf(number);
-				prevState.splice(index, 1);
-			} else if (selectedNumbers.length < NUMBER_PICK_LIMIT) {
-				prevState.push(number);
-			}
-			return [ ...prevState ];
-		});
-		onUpdateNumbers(selectedNumbers);
-	};
+		const prevState = numbers;
 
-	const clearState = () => {
-		setSelectedNumbers([]);
-		setStake('');
+		if (prevState.includes(number)) {
+			const index = prevState.indexOf(number);
+			prevState.splice(index, 1);
+		} else if (numbers.length < NUMBER_PICK_LIMIT) {
+			prevState.push(number);
+		}
+		onUpdateNumbers(prevState);
 	};
 
 	const generateRandomNumber = (size: number) => {
@@ -57,34 +50,16 @@ const _HomeScreen: React.FC<HomeScreenProps> = (props) => {
 	};
 
 	const handlePlaceBetEvent = () => {
-		onPlacingBetAction({numbers: selectedNumbers, betAmount: stake});
-		const isNumeric = !isNaN(Number(stake))
-		if (!isNumeric || Number(stake) < 1) {
-			setIsValidAmount(false)
-			modal.current?.open()
-		}
-		if (selectedNumbers.length < NUMBER_PICK_LIMIT) {
-			setIsValidPick(false)
-		}
-		if (isNumeric && Number(stake) > 0 && selectedNumbers.length === NUMBER_PICK_LIMIT) {
-			setIsValidAmount(true)
-			setIsValidPick(true)
-			modal.current?.open()
-			clearState();
-		}
+		onPlacingBetAction({numbers: numbers, betAmount: betAmount});
+		modal.current?.open();
 	};
 
 	const onSelectStake = (item: number) => {
-		if (!isValidAmount) {
-			setIsValidAmount(true)
-		}
-		setStake(item.toString())
 		onUpdateBet(item.toString());
 	};
 
 	const onManualSelectStake = (item: string) => {
-			setStake(item);
-			debouncedManualBetUpdate(item);
+		debouncedManualBetUpdate(item);
 	};
 
 	const debouncedManualBetUpdate = React.useRef(
@@ -95,7 +70,6 @@ const _HomeScreen: React.FC<HomeScreenProps> = (props) => {
 
 	const onQuickPickPress = () => {
 		const luckyNumbers = generateRandomNumber(NUMBER_PICK_LIMIT);
-		setSelectedNumbers(luckyNumbers);
 		onUpdateNumbers(luckyNumbers);
 	};
 
@@ -103,7 +77,7 @@ const _HomeScreen: React.FC<HomeScreenProps> = (props) => {
 		return () => {
 			debouncedManualBetUpdate.cancel();
 		};
-	}, [debouncedManualBetUpdate]);
+	}, [ debouncedManualBetUpdate ]);
 
 
 	return (
@@ -130,8 +104,8 @@ const _HomeScreen: React.FC<HomeScreenProps> = (props) => {
 					</Text>
 					<View
 						style={[ styles.grid, styles.selectedNumbers, {backgroundColor: Colors[ colorScheme ].secondaryBackground} ]}>
-						{selectedNumbers.length
-							? selectedNumbers.map((item) => (
+						{numbers.length
+							? numbers.map((item: number) => (
 								<TouchableOpacity
 									key={item}
 									style={styles.selectedNumber}
@@ -154,28 +128,28 @@ const _HomeScreen: React.FC<HomeScreenProps> = (props) => {
 					</View>
 				</View>
 
-				{numbers.map((item, index) => {
+				{lotteryNumbers.map((item, index) => {
 						const numColumns = 8
 						if (index % numColumns != 0) return null
 						let row: JSX.Element[] = []
 						for (let i = index; i < index + numColumns; i++) {
-							if (numbers.length > i) {
+							if (lotteryNumbers.length > i) {
 								row.push(
 									<TouchableOpacity
-										key={numbers[ i ]}
+										key={lotteryNumbers[ i ]}
 										style={[
 											styles.number,
-											selectedNumbers.includes(numbers[ i ]) && styles.numberActive,
+											numbers.includes(lotteryNumbers[ i ]) && styles.numberActive,
 										]}
-										onPress={(e) => handleSelectedNumber(numbers[ i ])}
+										onPress={(e) => handleSelectedNumber(lotteryNumbers[ i ])}
 									>
 										<Text
 											style={[
 												styles.numberText,
-												selectedNumbers.includes(numbers[ i ]) && styles.numberTextActive,
+												numbers.includes(lotteryNumbers[ i ]) && styles.numberTextActive,
 											]}
 										>
-											{numbers[ i ]}
+											{lotteryNumbers[ i ]}
 										</Text>
 									</TouchableOpacity>
 								)
@@ -198,7 +172,7 @@ const _HomeScreen: React.FC<HomeScreenProps> = (props) => {
 									style={[
 										styles.betButton,
 										{backgroundColor: Colors[ colorScheme ].buttonBackground},
-										stake === item.toString() && {backgroundColor: Colors[ colorScheme ].buttonBackgroundActive}
+										betAmount === item.toString() && {backgroundColor: Colors[ colorScheme ].buttonBackgroundActive}
 									]}
 									key={item}
 									onPress={(e) => onSelectStake(item)}
@@ -216,18 +190,18 @@ const _HomeScreen: React.FC<HomeScreenProps> = (props) => {
 					<View
 						style={styles.manualBetContainer}>
 						<TextInput
-							value={stake}
+							value={betAmount}
 							onChangeText={onManualSelectStake}
 							keyboardType="numeric"
 							style={[ styles.textInput, {color: Colors[ colorScheme ].color, borderColor: Colors[ colorScheme ].color, borderWidth: 1, borderStyle: 'solid'} ]}
 							placeholder="Enter Stake"
 						/>
 						<TouchableOpacity
-							disabled={selectedNumbers.length < NUMBER_PICK_LIMIT || !stake}
+							disabled={numbers.length < NUMBER_PICK_LIMIT || !betAmount}
 							style={[
 								styles.button,
 								{backgroundColor: Colors[ colorScheme ].buttonBackground},
-								selectedNumbers.length < NUMBER_PICK_LIMIT || !stake
+								numbers.length < NUMBER_PICK_LIMIT || !betAmount
 									? {backgroundColor: Colors[ colorScheme ].buttonBackgroundDisabled, opacity: 0.3}
 									: null,
 							]}
@@ -245,20 +219,8 @@ const _HomeScreen: React.FC<HomeScreenProps> = (props) => {
 				swipeToClose={true}
 				position="center"
 			>
-				{
-					isValidAmount && isValidPick && <Text style={{color: 'green', fontSize: 22}}>{BET_PLACEMENT_SUCCESS}</Text>}
-				{
-					!isValidPick && <Text
-						style={{color: 'red'}}>
-						{ERROR_MESSAGES_INVALID_NUMBERS}
-					</Text>
-				}
-				{
-					!isValidAmount && <Text
-						style={{color: 'red'}}>
-						{ERROR_MESSAGES_INVALID_BET_AMOUNT}
-					</Text>
-				}
+				{!error && <Text style={{color: 'green', fontSize: 22}}>{BET_PLACEMENT_SUCCESS}</Text>}
+				{error && <Text style={{color: 'red', fontSize: 22}}>{error}</Text>}
 			</Modal>
 		</ScrollView>
 	);
@@ -397,10 +359,11 @@ const styles = StyleSheet.create({
 	},
 });
 
-const mapToStateProps = (state: ApplicationState) => ({
-	betReducer: state.betReducer
+const mapStateToProps = (state: ApplicationState) => ({
+	betReducer: state.betReducer,
+	// numbers: selectNumbers(state),
 })
 
-const HomeScreen = connect(mapToStateProps, {onPlacingBetAction, onUpdateBet, onUpdateNumbers})(_HomeScreen);
+const HomeScreen = connect(mapStateToProps, {onPlacingBetAction, onUpdateBet, onUpdateNumbers})(_HomeScreen);
 
 export { HomeScreen };

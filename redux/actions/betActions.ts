@@ -1,7 +1,11 @@
 import { Dispatch } from 'redux';
 import { BetAmount, LotteryNumbers, BetPlacement } from '../models';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { NUMBER_PICK_LIMIT, ERROR_MESSAGES_INVALID_BET_AMOUNT, ERROR_MESSAGES_INVALID_NUMBERS } from '../../constants/Lottery';
+import {
+	NUMBER_PICK_LIMIT,
+	ERROR_MESSAGES_INVALID_BET_AMOUNT,
+	ERROR_MESSAGES_INVALID_NUMBERS
+} from '../../constants/Lottery';
 
 export interface UpdateBetAction {
 	readonly type: 'ON_UPDATE_BET',
@@ -44,6 +48,7 @@ export const onPlacingBetAction = (betPlacement: BetPlacement) => {
 				type: 'ON_PLACING_BET',
 				payload: betPlacement
 			})
+
 			if (betPlacement.numbers.length < NUMBER_PICK_LIMIT) {
 				let errorLimit = new Error();
 				errorLimit.message = ERROR_MESSAGES_INVALID_NUMBERS;
@@ -53,33 +58,18 @@ export const onPlacingBetAction = (betPlacement: BetPlacement) => {
 				errorBet.message = ERROR_MESSAGES_INVALID_BET_AMOUNT;
 				throw errorBet;
 			} else {
+				await AsyncStorage.removeItem('betPlacement');
 				dispatch({
 					type: 'ON_PLACING_BET_SUCCESS'
 				})
 			}
 		} catch (error) {
+			await AsyncStorage.mergeItem('betPlacement', JSON.stringify({error: error.message}));
 			dispatch({
 				type: 'ON_PLACING_BET_ERROR',
-				payload: error
+				payload: error.message
 			})
 		}
-	}
-}
-
-export const onPlacingBetActionError = (error: string) => {
-	return async (dispatch: Dispatch<BetAction>) => {
-		dispatch({
-			type: 'ON_PLACING_BET_ERROR',
-			payload: error
-		})
-	}
-}
-
-export const onPlacingBetActionSuccess = () => {
-	return async (dispatch: Dispatch<BetAction>) => {
-		dispatch({
-			type: 'ON_PLACING_BET_SUCCESS'
-		})
 	}
 }
 
@@ -96,8 +86,9 @@ export const onUpdateBet = (betAmount: BetAmount) => {
 
 export const onUpdateNumbers = (numbers: LotteryNumbers) => {
 	return async (dispatch: Dispatch<BetAction>) => {
-		await AsyncStorage.mergeItem('betPlacement', JSON.stringify({numbers}));
-
+		const currentBet = await AsyncStorage.getItem('betPlacement');
+		const currentBetParsed = {...JSON.parse(currentBet!), numbers};
+		await AsyncStorage.setItem('betPlacement', JSON.stringify(currentBetParsed));
 		dispatch({
 			type: 'ON_UPDATE_NUMBERS',
 			payload: numbers
