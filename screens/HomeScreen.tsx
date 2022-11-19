@@ -359,7 +359,6 @@ const styles = StyleSheet.create({
 
 const mapStateToProps = (state: ApplicationState) => ({
 	betReducer: state.betReducer,
-	// numbers: selectNumbers(state),
 })
 
 const HomeScreen = connect(mapStateToProps, {onPlacingBetAction, onUpdateBet, onUpdateNumbers})(_HomeScreen);
